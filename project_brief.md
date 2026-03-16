@@ -15,29 +15,6 @@ Your job is to investigate using only the GA4 BigQuery export. There is no GA4 U
 
 ---
 
-## Dataset
-
-- **Table name (recommended):** `analytics_demo.ga4_events`
-- **Date range:** `2024-01-01` → `2024-03-01` (61 days)
-- **Rows:** ~113,000 events
-- **Schema:** Standard GA4 BigQuery export schema (nested `event_params`, `items`, `device`, `geo`, `traffic_source`)
-
-### Loading Instructions (BigQuery)
-
-1. Download `ga4_events.jsonl.gz` and `bq_schema.json`
-2. In BigQuery Console → your project → **Create dataset**, name it `analytics_demo`
-3. Inside the dataset → **Create table**
-   - Source: Upload → select `ga4_events.jsonl.gz`
-   - File format: **JSONL (Newline delimited JSON)**
-   - Table name: `ga4_events`
-   - Schema: Toggle **Edit as text** → paste the full contents of `bq_schema.json`
-   - Partitioning: leave as default (or partition by `event_date` if you like)
-4. Click **Create table** — load takes ~30 seconds
-
-> **Tip:** BQ free tier gives you 10 GB/month of loading and 1 TB/month of queries. This dataset uses well under those limits.
-
----
-
 ## Your Tasks
 
 Work through these tasks in order. Each builds on the previous.

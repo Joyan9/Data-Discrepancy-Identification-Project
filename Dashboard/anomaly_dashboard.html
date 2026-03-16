@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Commerce Anomaly Report — Feb 5 Incident</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080b12;
+    --surface: #0e1320;
+    --card: #121828;
+    --card-hover: #161e30;
+    --border: #1d2740;
+    --border-bright: #263354;
+    --text: #dde3f0;
+    --text-muted: #5e6d8a;
+    --text-dim: #3a4560;
+    --red: #ff3d55;
+    --red-dim: rgba(255,61,85,0.12);
+    --green: #00d48a;
+    --green-dim: rgba(0,212,138,0.12);
+    --amber: #f5a623;
+    --amber-dim: rgba(245,166,35,0.12);
+    --blue: #4a86f7;
+    --blue-dim: rgba(74,134,247,0.12);
+    --pre: #4a86f7;
+    --anom: #ff3d55;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(74,134,247,0.08) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.012) 40px, rgba(255,255,255,0.012) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(255,255,255,0.008) 80px, rgba(255,255,255,0.008) 81px);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 36px 48px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .header-left {}
+
+  .report-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .report-label::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--red);
+  }
+
+  .header-meta {
+    margin-top: 10px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .period-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .period-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .critical-badge {
+    background: var(--red-dim);
+    border: 1px solid rgba(255,61,85,0.35);
+    color: var(--red);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 4px;
+  }
+
+  .header-stat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  .header-stat strong {
+    color: var(--red);
+    font-size: 18px;
+    font-weight: 600;
+    display: block;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  /* ── LAYOUT ── */
+  .main {
+    padding: 32px 48px 64px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    margin-top: 40px;
+  }
+
+  .section-header:first-child { margin-top: 0; }
+
+  .section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.amber::before { background: var(--amber); }
+  .kpi-card.blue::before { background: var(--blue); }
+
+  .kpi-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .kpi-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .kpi-card.red .kpi-value { color: var(--red); }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.amber .kpi-value { color: var(--amber); }
+  .kpi-card.blue .kpi-value { color: var(--blue); }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .kpi-arrow {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .kpi-arrow.down { color: var(--red); }
+  .kpi-arrow.up { color: var(--green); }
+
+  /* ── CHART CONTAINER ── */
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 28px;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .chart-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .chart-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .chart-wrap {
+    position: relative;
+  }
+
+  /* ── TWO COL ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .three-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  /* ── DEVICE CARDS ── */
+  .device-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .device-card.mobile-broken {
+    border-color: rgba(255,61,85,0.4);
+    background: linear-gradient(135deg, var(--card) 0%, rgba(255,61,85,0.05) 100%);
+  }
+
+  .device-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mobile-tag {
+    background: var(--red-dim);
+    border: 1px solid rgba(255,61,85,0.3);
+    color: var(--red);
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+  }
+
+  .tablet-tag {
+    background: var(--green-dim);
+    border: 1px solid rgba(0,212,138,0.3);
+    color: var(--green);
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+  }
+
+  .funnel-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .funnel-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .funnel-table th:first-child { text-align: left; }
+
+  .funnel-table td {
+    padding: 8px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .funnel-table tr:last-child td { border-bottom: none; }
+
+  .funnel-table td:first-child {
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .val-pre { color: var(--blue); }
+  .val-anom { color: var(--text); }
+
+  .delta-cell {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .delta-cell.neg { color: var(--red); }
+  .delta-cell.pos { color: var(--green); }
+  .delta-cell.zero { color: var(--red); background: var(--red-dim); border-radius: 3px; padding: 1px 4px; }
+
+  .zero-banner {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--red-dim);
+    border: 1px solid rgba(255,61,85,0.25);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .zero-banner strong {
+    display: block;
+    color: var(--red);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── SOURCE CARDS ── */
+  .source-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 22px;
+  }
+
+  .source-card.cpc-broken {
+    border-color: rgba(245,166,35,0.35);
+    background: linear-gradient(135deg, var(--card) 0%, rgba(245,166,35,0.04) 100%);
+  }
+
+  .source-card.direct-surge {
+    border-color: rgba(74,134,247,0.35);
+    background: linear-gradient(135deg, var(--card) 0%, rgba(74,134,247,0.04) 100%);
+  }
+
+  .source-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  .source-flag {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .source-flag.warn {
+    background: var(--amber-dim);
+    border: 1px solid rgba(245,166,35,0.3);
+    color: var(--amber);
+  }
+
+  .source-flag.surge {
+    background: var(--blue-dim);
+    border: 1px solid rgba(74,134,247,0.3);
+    color: var(--blue);
+  }
+
+  .source-flag.organic {
+    background: rgba(0,212,138,0.08);
+    border: 1px solid rgba(0,212,138,0.2);
+    color: var(--green);
+  }
+
+  /* ── MINI STAT ROWS ── */
+  .mini-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .mini-stat {
+    flex: 1;
+    min-width: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
+  .mini-stat-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 5px;
+  }
+
+  .mini-stat-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .mini-stat-delta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    margin-top: 3px;
+  }
+
+  /* ── FINDINGS ── */
+  .findings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .finding-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .finding-card.critical {
+    border-color: rgba(255,61,85,0.3);
+  }
+
+  .finding-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 48px;
+    color: var(--border-bright);
+    line-height: 1;
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+
+  .finding-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 19px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+    color: white;
+  }
+
+  .finding-title em {
+    font-style: italic;
+    color: var(--red);
+  }
+
+  .finding-title em.amber { color: var(--amber); }
+
+  .finding-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+
+  .finding-stat-callout {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .callout-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .callout-pill.red {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(255,61,85,0.25);
+  }
+
+  .callout-pill.amber {
+    background: var(--amber-dim);
+    color: var(--amber);
+    border: 1px solid rgba(245,166,35,0.25);
+  }
+
+  .callout-pill.blue {
+    background: var(--blue-dim);
+    color: var(--blue);
+    border: 1px solid rgba(74,134,247,0.25);
+  }
+
+  /* ── RECOMMENDATIONS TABLE ── */
+  .rec-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .rec-table thead th {
+    background: var(--surface);
+    padding: 12px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rec-table tbody td {
+    padding: 14px 18px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.55;
+    color: var(--text-muted);
+  }
+
+  .rec-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .rec-table tbody tr:hover td {
+    background: var(--card-hover);
+  }
+
+  .priority-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .priority-badge.crit {
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(255,61,85,0.25);
+  }
+
+  .priority-badge.med {
+    background: var(--amber-dim);
+    color: var(--amber);
+    border: 1px solid rgba(245,166,35,0.25);
+  }
+
+  .rec-issue-title {
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+  }
+
+  /* ── METHODOLOGY ── */
+  .method-steps {
+    display: flex;
+    gap: 0;
+  }
+
+  .method-step {
+    flex: 1;
+    padding: 20px 22px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+
+  .method-step:first-child {
+    border-left: 1px solid var(--border);
+    border-radius: 8px 0 0 8px;
+  }
+
+  .method-step:last-child {
+    border-radius: 0 8px 8px 0;
+  }
+
+  .method-step-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    font-style: italic;
+    color: var(--border-bright);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .method-step-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+
+  .method-step-body {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  /* ── OVERALL FUNNEL TABLE ── */
+  .overall-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .overall-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    padding: 0 12px 12px 0;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+  .overall-table th:first-child { text-align: left; }
+
+  .overall-table td {
+    padding: 12px 12px 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
+  }
+
+  .overall-table tr:last-child td { border-bottom: none; }
+
+  .overall-table td:first-child {
+    text-align: left;
+    font-size: 11px;
+  }
+
+  .row-pre td { color: var(--blue); }
+  .row-pre td:first-child { color: var(--text-muted); }
+  .row-anom td { color: var(--text); }
+  .row-anom td:first-child { color: var(--text-muted); }
+
+  .row-delta td { font-size: 11px; font-weight: 600; }
+  .row-delta td:first-child { color: var(--text-dim); }
+
+  .neg { color: var(--red) !important; }
+  .pos { color: var(--green) !important; }
+
+  /* ── FOOTER ── */
+  .footer {
+    padding: 24px 48px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ── CHART HEIGHT FIX ── */
+  canvas { max-width: 100%; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .kpi-card, .chart-card, .device-card, .source-card, .finding-card {
+    animation: fadeInUp 0.5s ease both;
+  }
+
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.20s; }
+
+  @media (max-width: 1100px) {
+    .main { padding: 24px 24px 48px; }
+    .header { padding: 24px 24px 20px; }
+    .footer { padding: 20px 24px; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .findings-grid { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .method-steps { flex-direction: column; }
+    .method-step:first-child { border-radius: 8px 8px 0 0; border-left: 1px solid var(--border); }
+    .method-step:last-child { border-radius: 0 0 8px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="report-label">Anomaly Investigation · Active Incident</div>
+    <h1>The <em>February Dip</em></h1>
+    <div class="header-meta">
+      <div class="period-badge">
+        <div class="period-dot" style="background:#4a86f7"></div>
+        Pre-Anomaly: Jan 1 – Feb 4
+      </div>
+      <div class="period-badge">
+        <div class="period-dot" style="background:#ff3d55"></div>
+        Anomaly: Feb 5 – Mar 1
+      </div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="critical-badge">⚠ 2 Critical Issues Identified</div>
+    <div class="header-stat">
+      <strong>−$11,093</strong>
+      estimated lost revenue
+    </div>
+    <div class="header-stat">
+      <strong>−$1.18</strong>
+      revenue per session loss
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- KPI SUMMARY -->
+  <div class="section-header">
+    <span class="section-title">Overall KPIs</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card red">
+      <div class="kpi-label">Revenue Change</div>
+      <div class="kpi-value">−27%</div>
+      <div class="kpi-sub">
+        <span class="kpi-arrow down">▼</span>
+        <span>$40,962 → $29,869</span>
+      </div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Conversion Rate</div>
+      <div class="kpi-value">−33%</div>
+      <div class="kpi-sub">
+        <span class="kpi-arrow down">▼</span>
+        <span>5.27% → 3.53%</span>
+      </div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Revenue / Session</div>
+      <div class="kpi-value">−30%</div>
+      <div class="kpi-sub">
+        <span class="kpi-arrow down">▼</span>
+        <span>$3.99 → $2.81</span>
+      </div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Sessions</div>
+      <div class="kpi-value">+3.6%</div>
+      <div class="kpi-sub">
+        <span class="kpi-arrow up">▲</span>
+        <span>10,266 → 10,639 (misleading)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- OVERALL FUNNEL CHART + TABLE -->
+  <div class="section-header" style="margin-top: 32px;">
+    <span class="section-title">Funnel Overview</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="two-col" style="gap:16px; align-items: start;">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Step Conversion Rates (÷ Sessions)</div>
+          <div class="chart-subtitle">Each step measured as % of total sessions — ATC rate is the key break</div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#4a86f7"></div>Pre-Anomaly</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ff3d55"></div>Anomaly</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height: 260px;">
+        <canvas id="funnelChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Overall Period Comparison</div>
+          <div class="chart-subtitle">All funnel stages · revenue in USD</div>
+        </div>
+      </div>
+      <table class="overall-table">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Sessions</th>
+            <th>View Item Rate</th>
+            <th>ATC Rate</th>
+            <th>Checkout Rate</th>
+            <th>CVR</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-pre">
+            <td>Pre-Anomaly</td>
+            <td>10,266</td>
+            <td>73.9%</td>
+            <td>47.8%</td>
+            <td>24.1%</td>
+            <td>5.27%</td>
+            <td>$40,962</td>
+          </tr>
+          <tr class="row-anom">
+            <td>Anomaly</td>
+            <td>10,639</td>
+            <td>64.9%</td>
+            <td>29.7%</td>
+            <td>14.3%</td>
+            <td>3.53%</td>
+            <td>$29,869</td>
+          </tr>
+          <tr class="row-delta">
+            <td>Δ pp</td>
+            <td class="pos">+3.6%</td>
+            <td class="neg">−9.0 pp</td>
+            <td class="neg">−18.1 pp</td>
+            <td class="neg">−9.8 pp</td>
+            <td class="neg">−1.7 pp</td>
+            <td class="neg">−27.1%</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:16px; padding:12px 14px; background: rgba(255,61,85,0.06); border: 1px solid rgba(255,61,85,0.15); border-radius:6px;">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted);">
+          The most impactful break is the <strong style="color:var(--text);">Add-to-Cart rate</strong> (add to carts ÷ sessions): 
+          it fell from <strong style="color:var(--blue);">47.8%</strong> to <strong style="color:var(--red);">29.7%</strong> — a 18pp drop that starved every downstream step. 
+          Sessions actually <em style="color: var(--amber);">increased</em>, masking the true severity.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEVICE BREAKDOWN -->
+  <div class="section-header">
+    <span class="section-title">Device Breakdown</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="three-col">
+    <!-- Desktop -->
+    <div class="device-card">
+      <div class="device-title">
+        <span>Desktop</span>
+        <span></span>
+      </div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">CVR</div>
+          <div class="mini-stat-val" style="color:var(--red)">5.08%</div>
+          <div class="mini-stat-delta neg">−15.3% vs pre</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Revenue</div>
+          <div class="mini-stat-val" style="color:var(--text)">$28.5K</div>
+          <div class="mini-stat-delta neg">−8.6%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Sessions</div>
+          <div class="mini-stat-val" style="color:var(--green)">7,130</div>
+          <div class="mini-stat-delta pos">+2.8%</div>
+        </div>
+      </div>
+      <table class="funnel-table">
+        <thead>
+          <tr><th>Step Rate (÷ sessions)</th><th>Pre</th><th>Anom</th><th>Δ pp</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>View Item Rate</td><td class="val-pre">76.0%</td><td class="val-anom">71.6%</td><td class="delta-cell neg">−4.4 pp</td></tr>
+          <tr><td>ATC Rate</td><td class="val-pre">52.2%</td><td class="val-anom">42.9%</td><td class="delta-cell neg">−9.3 pp</td></tr>
+          <tr><td>Checkout Rate</td><td class="val-pre">26.7%</td><td class="val-anom">20.8%</td><td class="delta-cell neg">−5.9 pp</td></tr>
+          <tr><td>CVR</td><td class="val-pre">6.00%</td><td class="val-anom">5.08%</td><td class="delta-cell neg">−0.9 pp</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px; font-size:12px; color:var(--text-muted); line-height:1.5;">
+        Typical seasonal softening. Add-to-cart down 15% but pattern is consistent across all steps — no single anomalous break.
+      </div>
+    </div>
+
+    <!-- Mobile -->
+    <div class="device-card mobile-broken">
+      <div class="device-title">
+        <span>Mobile</span>
+        <span class="mobile-tag">⚠ BROKEN</span>
+      </div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">CVR</div>
+          <div class="mini-stat-val" style="color:var(--red)">0.00%</div>
+          <div class="mini-stat-delta" style="color:var(--red)">−100%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Revenue</div>
+          <div class="mini-stat-val" style="color:var(--red)">$0</div>
+          <div class="mini-stat-delta" style="color:var(--red)">−100%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Sessions</div>
+          <div class="mini-stat-val" style="color:var(--green)">3,176</div>
+          <div class="mini-stat-delta pos">+5.2%</div>
+        </div>
+      </div>
+      <table class="funnel-table">
+        <thead>
+          <tr><th>Step Rate (÷ sessions)</th><th>Pre</th><th>Anom</th><th>Δ pp</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>View Item Rate</td><td class="val-pre">69.7%</td><td class="val-anom">50.1%</td><td class="delta-cell neg">−19.6 pp</td></tr>
+          <tr><td>ATC Rate</td><td class="val-pre">39.0%</td><td class="val-anom">0.00%</td><td class="delta-cell zero">−100%</td></tr>
+          <tr><td>Checkout Rate</td><td class="val-pre">18.7%</td><td class="val-anom">0.00%</td><td class="delta-cell zero">−100%</td></tr>
+          <tr><td>CVR</td><td class="val-pre">3.77%</td><td class="val-anom">0.00%</td><td class="delta-cell zero">−100%</td></tr>
+        </tbody>
+      </table>
+      <div class="zero-banner">
+        <strong>Root Cause #1: Complete Add-to-Cart Failure</strong>
+        Mobile accounted for 21% of pre-anomaly revenue ($8,685). Every single purchase dropped to zero from Feb 5. View Item still fires — the break is specifically at or before the cart action.
+      </div>
+    </div>
+
+    <!-- Tablet -->
+    <div class="device-card">
+      <div class="device-title">
+        <span>Tablet</span>
+        <span class="tablet-tag">↑ UPLIFT</span>
+      </div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">CVR</div>
+          <div class="mini-stat-val" style="color:var(--green)">4.20%</div>
+          <div class="mini-stat-delta pos">+17.7% vs pre</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Revenue</div>
+          <div class="mini-stat-val" style="color:var(--green)">$1,343</div>
+          <div class="mini-stat-delta pos">+24.0%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Sessions</div>
+          <div class="mini-stat-val" style="color:var(--green)">333</div>
+          <div class="mini-stat-delta pos">+8.1%</div>
+        </div>
+      </div>
+      <table class="funnel-table">
+        <thead>
+          <tr><th>Step Rate (÷ sessions)</th><th>Pre</th><th>Anom</th><th>Δ pp</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>View Item Rate</td><td class="val-pre">67.5%</td><td class="val-anom">63.7%</td><td class="delta-cell neg">−3.8 pp</td></tr>
+          <tr><td>ATC Rate</td><td class="val-pre">36.4%</td><td class="val-anom">28.5%</td><td class="delta-cell neg">−7.9 pp</td></tr>
+          <tr><td>Checkout Rate</td><td class="val-pre">15.9%</td><td class="val-anom">12.9%</td><td class="delta-cell neg">−3.0 pp</td></tr>
+          <tr><td>CVR</td><td class="val-pre">3.57%</td><td class="val-anom">4.20%</td><td class="delta-cell pos">+0.6 pp</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px; padding:10px 12px; background: var(--green-dim); border: 1px solid rgba(0,212,138,0.2); border-radius:6px; font-size:12px; color:var(--text-muted); line-height:1.5;">
+        Tablet uplift concurrent with mobile failure raises a key hypothesis: did a product or UX release <strong style="color:var(--text);">accidentally benefit tablet while breaking mobile?</strong>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- TRAFFIC SOURCE -->
+  <div class="section-header">
+    <span class="section-title">Traffic Source Breakdown</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="three-col">
+    <!-- Google Organic -->
+    <div class="source-card">
+      <div class="source-name">google / organic</div>
+      <div class="source-flag organic">Consistent Decline</div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">Sessions</div>
+          <div class="mini-stat-val" style="color:var(--red)">3,032</div>
+          <div class="mini-stat-delta neg">−22.1%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">CVR</div>
+          <div class="mini-stat-val" style="color:var(--text)">3.66%</div>
+          <div class="mini-stat-delta neg">−6.2%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Revenue</div>
+          <div class="mini-stat-val" style="color:var(--red)">$8,551</div>
+          <div class="mini-stat-delta neg">−19.7%</div>
+        </div>
+      </div>
+      <table class="funnel-table">
+        <thead><tr><th>Step Rate (÷ sessions)</th><th>Pre</th><th>Anom</th><th>Δ pp</th></tr></thead>
+        <tbody>
+          <tr><td>View Item Rate</td><td class="val-pre">71.2%</td><td class="val-anom">66.3%</td><td class="delta-cell neg">−4.9 pp</td></tr>
+          <tr><td>ATC Rate</td><td class="val-pre">41.0%</td><td class="val-anom">31.7%</td><td class="delta-cell neg">−9.3 pp</td></tr>
+          <tr><td>Checkout Rate</td><td class="val-pre">19.9%</td><td class="val-anom">14.7%</td><td class="delta-cell neg">−5.2 pp</td></tr>
+          <tr><td>CVR</td><td class="val-pre">3.90%</td><td class="val-anom">3.66%</td><td class="delta-cell neg">−0.2 pp</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px; font-size:12px; color:var(--text-muted); line-height:1.5;">
+        Organic sessions dropped 22% and funnel performance declined in lockstep. Likely partially explained by mobile users (who often arrive via organic search) being unable to complete purchases.
+      </div>
+    </div>
+
+    <!-- Direct -->
+    <div class="source-card direct-surge">
+      <div class="source-name">(direct) / (none)</div>
+      <div class="source-flag surge">+281% Surge · Attribution Bleed</div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">Sessions</div>
+          <div class="mini-stat-val" style="color:var(--blue)">5,425</div>
+          <div class="mini-stat-delta pos">+281.2%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">CVR</div>
+          <div class="mini-stat-val" style="color:var(--red)">2.65%</div>
+          <div class="mini-stat-delta neg">−38.1%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Revenue</div>
+          <div class="mini-stat-val" style="color:var(--blue)">$11,764</div>
+          <div class="mini-stat-delta pos">+97.6%</div>
+        </div>
+      </div>
+      <table class="funnel-table">
+        <thead><tr><th>Step Rate (÷ sessions)</th><th>Pre</th><th>Anom</th><th>Δ pp</th></tr></thead>
+        <tbody>
+          <tr><td>View Item Rate</td><td class="val-pre">65.3%</td><td class="val-anom">62.4%</td><td class="delta-cell neg">−2.9 pp</td></tr>
+          <tr><td>ATC Rate</td><td class="val-pre">31.8%</td><td class="val-anom">24.6%</td><td class="delta-cell neg">−7.2 pp</td></tr>
+          <tr><td>Checkout Rate</td><td class="val-pre">14.6%</td><td class="val-anom">11.6%</td><td class="delta-cell neg">−3.0 pp</td></tr>
+          <tr><td>CVR</td><td class="val-pre">4.29%</td><td class="val-anom">2.65%</td><td class="delta-cell neg">−1.6 pp</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px; padding:10px 12px; background: var(--blue-dim); border:1px solid rgba(74,134,247,0.2); border-radius:6px; font-size:12px; color:var(--text-muted); line-height:1.5;">
+        A 281% surge in direct traffic is a near-textbook signal of <strong style="color:var(--text);">UTM parameter failure</strong> — paid CPC sessions are being misclassified as direct.
+      </div>
+    </div>
+
+    <!-- CPC -->
+    <div class="source-card cpc-broken">
+      <div class="source-name">google / cpc</div>
+      <div class="source-flag warn">⚠ Attribution Failure</div>
+      <div class="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">Sessions</div>
+          <div class="mini-stat-val" style="color:var(--red)">186</div>
+          <div class="mini-stat-delta neg">−92.4%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">CVR</div>
+          <div class="mini-stat-val" style="color:var(--green)">12.90%</div>
+          <div class="mini-stat-delta pos">+95.5%</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">Revenue</div>
+          <div class="mini-stat-val" style="color:var(--red)">$1,840</div>
+          <div class="mini-stat-delta neg">−84.3%</div>
+        </div>
+      </div>
+      <table class="funnel-table">
+        <thead><tr><th>Step Rate (÷ sessions)</th><th>Pre</th><th>Anom</th><th>Δ pp</th></tr></thead>
+        <tbody>
+          <tr><td>View Item Rate</td><td class="val-pre">81.6%</td><td class="val-anom">72.0%</td><td class="delta-cell neg">−9.6 pp</td></tr>
+          <tr><td>ATC Rate</td><td class="val-pre">61.4%</td><td class="val-anom">50.0%</td><td class="delta-cell neg">−11.4 pp</td></tr>
+          <tr><td>Checkout Rate</td><td class="val-pre">31.2%</td><td class="val-anom">31.2%</td><td class="delta-cell" style="color:var(--text-muted)">0.0 pp</td></tr>
+          <tr><td>CVR</td><td class="val-pre">6.60%</td><td class="val-anom">12.90%</td><td class="delta-cell pos">+6.3 pp</td></tr>
+        </tbody>
+      </table>
+      <div class="zero-banner" style="background: var(--amber-dim); border-color: rgba(245,166,35,0.25);">
+        <strong style="color:var(--amber);">Root Cause #2: CPC Attribution Breakdown</strong>
+        CPC volume fell 92% while CVR jumped to 12.9% — the remaining 8% are real paid sessions, the rest are being mislabeled as Direct. Consistent across all OS/device types, ruling out ITP.
+      </div>
+    </div>
+  </div>
+
+  <!-- SOURCE CHART -->
+  <div class="chart-card" style="margin-top:16px;">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Sessions by Traffic Source — Pre vs Anomaly</div>
+        <div class="chart-subtitle">CPC collapse mirrors Direct surge — characteristic of UTM parameter failure</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4a86f7"></div>Pre-Anomaly</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff3d55"></div>Anomaly</div>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height: 220px;">
+      <canvas id="sourceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- FINDINGS -->
+  <div class="section-header">
+    <span class="section-title">Findings</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="findings-grid">
+    <div class="finding-card critical">
+      <div class="finding-number">01</div>
+      <div class="finding-title">Mobile <em>Add-to-Cart</em> Failure</div>
+      <div class="finding-body">
+        Mobile users recorded zero add-to-cart events from February 5th onward. In the pre-anomaly period, mobile accounted for 21% of total revenue — that contribution dropped to 0% during the anomaly period. Notably, View Item still fires on mobile, pinpointing the break at or immediately before the cart action.
+        <br><br>
+        Tablet users showed a concurrent uplift. This contrast raises a pointed question: was there a product or UX update that inadvertently improved the tablet experience while breaking the mobile one?
+      </div>
+      <div class="finding-stat-callout">
+        <span class="callout-pill red">Mobile Revenue: $0</span>
+        <span class="callout-pill red">−$8,685 vs pre</span>
+        <span class="callout-pill amber">Tablet CVR: +17.7%</span>
+      </div>
+    </div>
+    <div class="finding-card critical">
+      <div class="finding-number">02</div>
+      <div class="finding-title">CPC <em class="amber">Attribution</em> Breakdown</div>
+      <div class="finding-body">
+        Google CPC traffic fell by 92% during the anomaly period, while direct traffic surged by 281% — a near-textbook signal of UTM parameter failure, where paid sessions are being misclassified as direct. The elevated CVR on the remaining CPC sessions (12.9%) suggests the residual volume is real, high-intent traffic.
+        <br><br>
+        Critically, the drop is consistent across device categories and operating systems including Android and Windows, which rules out iOS privacy features (ITP) as a contributing factor. This points to a systemic tagging issue upstream — likely Google Ads auto-tagging configuration.
+      </div>
+      <div class="finding-stat-callout">
+        <span class="callout-pill red">CPC Sessions: −92%</span>
+        <span class="callout-pill blue">Direct: +281%</span>
+        <span class="callout-pill amber">ROAS untrustworthy</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="section-header">
+    <span class="section-title">Recommendations</span>
+    <div class="section-line"></div>
+  </div>
+
+  <table class="rec-table">
+    <thead>
+      <tr>
+        <th style="width:110px">Priority</th>
+        <th style="width:220px">Issue</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="priority-badge crit">🔴 Critical</span></td>
+        <td><div class="rec-issue-title">Mobile add-to-cart broken</div></td>
+        <td>QA the add-to-cart button on mobile across browsers and OS versions. Determine whether the button is non-functional or has a visibility/UX issue. Cross-reference with any code or product releases made around Feb 5th.</td>
+      </tr>
+      <tr>
+        <td><span class="priority-badge crit">🔴 Critical</span></td>
+        <td><div class="rec-issue-title">CPC traffic untagged</div></td>
+        <td>Audit Google Ads auto-tagging settings. Verify that UTM parameters are being appended correctly at the campaign level. Without reliable attribution, ROAS cannot be accurately calculated.</td>
+      </tr>
+      <tr>
+        <td><span class="priority-badge med">🟡 Preventive</span></td>
+        <td><div class="rec-issue-title">UTM single point of failure</div></td>
+        <td>Add manual UTM parameter backups to all paid search ads. Auto-tagging should not be the single point of failure for attribution — hardcoded UTMs act as a reliable fallback.</td>
+      </tr>
+      <tr>
+        <td><span class="priority-badge med">🟡 Preventive</span></td>
+        <td><div class="rec-issue-title">No channel-level anomaly alerts</div></td>
+        <td>Set up anomaly alerts for channel-level traffic shifts (e.g., &gt;50% week-over-week change in any source/medium) to catch attribution issues before they compound.</td>
+      </tr>
+      <tr>
+        <td><span class="priority-badge med">🟡 Preventive</span></td>
+        <td><div class="rec-issue-title">No mobile funnel monitoring</div></td>
+        <td>Implement a dedicated alert for mobile add-to-cart rate. A mobile-specific funnel monitor would have surfaced this issue within hours of February 5th rather than allowing it to persist for weeks.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- METHODOLOGY -->
+  <div class="section-header">
+    <span class="section-title">Methodology</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="method-steps">
+    <div class="method-step">
+      <div class="method-step-num">1</div>
+      <div class="method-step-title">Baseline Establishment</div>
+      <div class="method-step-body">Overall KPIs reviewed for the full date range, then split into pre-anomaly and anomaly periods to quantify the performance gap. Revenue per session used as the primary impact metric.</div>
+    </div>
+    <div class="method-step">
+      <div class="method-step-num">2</div>
+      <div class="method-step-title">Funnel Diagnostics</div>
+      <div class="method-step-body">KPI deterioration pointed to a drop-off between the PDP and add-to-cart step. The sharpest funnel break at View Item → Add to Cart (−35.7%) narrowed the investigation scope.</div>
+    </div>
+    <div class="method-step">
+      <div class="method-step-num">3</div>
+      <div class="method-step-title">Segmentation Analysis</div>
+      <div class="method-step-body">Data segmented by device category and traffic source/medium, revealing two independent but concurrent anomalies: a mobile UX failure and a CPC attribution breakdown. Supporting queries in <code style="font-size:11px; color:var(--amber)">Queries.sql</code>.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>E-Commerce Performance Anomaly Report · The February Dip</span>
+  <span>Pre-Anomaly: Jan 1–Feb 4 · Anomaly: Feb 5–Mar 1 · Data source: GA4 BigQuery Export</span>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const OVERALL = {
+  labels: ['View Item Rate', 'ATC Rate', 'Checkout Rate', 'CVR'],
+  pre:    [73.9, 47.8, 24.1, 5.27],
+  anom:   [64.9, 29.7, 14.3, 3.53]
+};
+
+
+const SOURCE_SESSIONS = {
+  labels: ['google / organic', '(direct) / (none)', 'google / cpc'],
+  pre:  [3893, 1423, 2439],
+  anom: [3032, 5425,  186]
+};
+
+// ── CHART DEFAULTS ─────────────────────────────────────────────────────────
+const BLUE   = 'rgba(74,134,247,0.85)';
+const BLUE_B = 'rgba(74,134,247,0.4)';
+const RED    = 'rgba(255,61,85,0.85)';
+const RED_B  = 'rgba(255,61,85,0.4)';
+
+Chart.defaults.color = '#5e6d8a';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const gridConfig = {
+  color: 'rgba(29,39,64,0.8)',
+  drawBorder: false
+};
+
+// ── FUNNEL CHART ───────────────────────────────────────────────────────────
+new Chart(document.getElementById('funnelChart'), {
+  type: 'bar',
+  data: {
+    labels: OVERALL.labels,
+    datasets: [
+      {
+        label: 'Pre-Anomaly',
+        data: OVERALL.pre,
+        backgroundColor: BLUE,
+        borderColor: 'rgba(74,134,247,0.2)',
+        borderWidth: 1,
+        borderRadius: 4
+      },
+      {
+        label: 'Anomaly',
+        data: OVERALL.anom,
+        backgroundColor: RED,
+        borderColor: 'rgba(255,61,85,0.2)',
+        borderWidth: 1,
+        borderRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#161b25',
+        borderColor: '#263354',
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`
+        }
+      }
+    },
+    scales: {
+      x: { grid: gridConfig, ticks: { font: { size: 11 } } },
+      y: {
+        grid: gridConfig,
+        ticks: {
+          callback: v => v + '%'
+        }
+      }
+    }
+  }
+});
+
+
+// ── SOURCE SESSIONS CHART ─────────────────────────────────────────────────
+new Chart(document.getElementById('sourceChart'), {
+  type: 'bar',
+  data: {
+    labels: SOURCE_SESSIONS.labels,
+    datasets: [
+      {
+        label: 'Pre-Anomaly',
+        data: SOURCE_SESSIONS.pre,
+        backgroundColor: BLUE,
+        borderRadius: 4
+      },
+      {
+        label: 'Anomaly',
+        data: SOURCE_SESSIONS.anom,
+        backgroundColor: (ctx) => {
+          // All anomaly bars are red — surge in direct is equally anomalous (attribution bleed)
+          return 'rgba(255,61,85,0.85)';
+        },
+        borderRadius: 4
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#161b25',
+        borderColor: '#263354',
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`
+        }
+      }
+    },
+    scales: {
+      x: { grid: gridConfig },
+      y: {
+        grid: gridConfig,
+        ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(1)+'k' : v }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
