@@ -7,7 +7,7 @@
 
 You are a **Data / Web Analyst** at *Google Merchandise Store*, a mid-size e-commerce brand that sells branded apparel and accessories. The company exports its GA4 data to BigQuery daily.
 
-It's **Monday, February 12, 2024**. Your manager sends you this message:
+It's **Friday, February 9, 2024**. Your manager sends you this message:
 
 > "Revenue last week was way down compared to January. Finance noticed it Friday and flagged it to me over the weekend. Can you dig into the GA4 BigQuery data and tell me what's going on? I need a clear answer by end of week — what happened, when it started, and what we should do about it."
 
